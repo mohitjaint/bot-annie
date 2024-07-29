@@ -1,0 +1,1 @@
+'''ollama create bot_stella --file test_area/bot_stella.modelfile'''

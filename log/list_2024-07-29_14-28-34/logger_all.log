@@ -1,0 +1,26 @@
+[0.173s] colcon DEBUG Command line arguments: ['/usr/bin/colcon', 'list', '-p', '--base-paths', '/home/bravo6/Desktop/active_projects/munna']
+[0.173s] colcon DEBUG Parsed command line arguments: Namespace(log_base=None, log_level=None, verb_name='list', build_base='build', ignore_user_meta=False, metas=['./colcon.meta'], base_paths=['/home/bravo6/Desktop/active_projects/munna'], packages_ignore=None, packages_ignore_regex=None, paths=None, packages_up_to=None, packages_up_to_regex=None, packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_select_by_dep=None, packages_skip_by_dep=None, packages_skip_up_to=None, packages_select_build_failed=False, packages_skip_build_finished=False, packages_select_test_failures=False, packages_skip_test_passed=False, packages_select=None, packages_skip=None, packages_select_regex=None, packages_skip_regex=None, packages_start=None, packages_end=None, allow_overriding=[], topological_order=False, names_only=False, paths_only=True, topological_graph=False, topological_graph_dot=False, topological_graph_density=False, topological_graph_legend=False, topological_graph_dot_cluster=False, topological_graph_dot_include_skipped=False, mixin_files=None, mixin=None, verb_parser=<colcon_mixin.mixin.mixin_argument.MixinArgumentDecorator object at 0x74faf8e3ee30>, verb_extension=<colcon_package_information.verb.list.ListVerb object at 0x74faf8e3dbd0>, main=<bound method ListVerb.main of <colcon_package_information.verb.list.ListVerb object at 0x74faf8e3dbd0>>, mixin_verb=('list',))
+[0.465s] colcon.colcon_core.package_discovery Level 1 discover_packages(colcon_meta) check parameters
+[0.465s] colcon.colcon_core.package_discovery Level 1 discover_packages(recursive) check parameters
+[0.465s] colcon.colcon_core.package_discovery Level 1 discover_packages(ignore) check parameters
+[0.465s] colcon.colcon_core.package_discovery Level 1 discover_packages(path) check parameters
+[0.465s] colcon.colcon_core.package_discovery Level 1 discover_packages(recursive) discover
+[0.465s] colcon.colcon_core.package_discovery INFO Crawling recursively for packages in '/home/bravo6/Desktop/active_projects/munna'
+[0.465s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extensions ['ignore', 'ignore_ament_install']
+[0.465s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extension 'ignore'
+[0.466s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extension 'ignore_ament_install'
+[0.466s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extensions ['colcon_pkg']
+[0.466s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extension 'colcon_pkg'
+[0.466s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extensions ['colcon_meta']
+[0.466s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extension 'colcon_meta'
+[0.466s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extensions ['ros']
+[0.466s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extension 'ros'
+[0.479s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extensions ['cmake', 'python']
+[0.479s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extension 'cmake'
+[0.479s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extension 'python'
+[0.479s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extensions ['python_setup_py']
+[0.479s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna) by extension 'python_setup_py'
+[0.479s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna/log) by extensions ['ignore', 'ignore_ament_install']
+[0.479s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna/log) by extension 'ignore'
+[0.479s] colcon.colcon_core.package_identification Level 1 _identify(/home/bravo6/Desktop/active_projects/munna/log) ignored
+[0.479s] colcon.colcon_core.package_discovery Level 1 discover_packages(recursive) using defaults
