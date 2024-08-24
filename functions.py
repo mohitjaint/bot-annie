@@ -1,17 +1,18 @@
+import asyncio
 import subprocess
 from time import sleep
 from geometry_msgs.msg import Twist
 from twist_micro_server import twist_api
 import edge_tts
+import speech_recognition as sr
+import serial
 
-# List of actions...
-
+# PARAMS
 MESSAGE = Twist()
-
 SPEECH_VOICE = "en-GB-SoniaNeural"
 
 
-
+# List of actions...
 
 
 def idle():
@@ -70,16 +71,24 @@ def rotate(clockwise: bool, speed: float, time: float):
 
 ############################################################
 
+def ard_twist(x: float, z: float, time: float, arduino, remote=False):
+
+    if remote:
+        pass
+    else:
+        arduino.write(f"[{x},{z},{time}]".encode())
+
+
 def twist(x: float, z: float, time: float):
     '''Moves the bot in the specified linear x and angular z direction for the specified time. The bot will move infinitely if time is negative.'''
 
 
     MESSAGE.linear.x = x
-    MESSAGE.linear.y = 0
-    MESSAGE.linear.z = 0
+    MESSAGE.linear.y = 0.0
+    MESSAGE.linear.z = 0.0
 
-    MESSAGE.angular.x = 0
-    MESSAGE.angular.y = 0
+    MESSAGE.angular.x = 0.0
+    MESSAGE.angular.y = 0.0
     MESSAGE.angular.z = z
     
     twist_api.send_twist(MESSAGE)
@@ -91,6 +100,37 @@ def twist(x: float, z: float, time: float):
 
     idle()
 
+
+def listen(show=True) -> str:
+    # obtain audio from the microphone
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        print(f"\rListening...", end="", flush=True)
+        audio = r.listen(source)
+
+    print("\rRecognizing...", end="", flush=True)
+    try:
+        # for testing purposes, we're just using the default API key
+        # to use another API key, use `r.recognize_google(audio, key="GOOGLE_SPEECH_RECOGNITION_API_KEY")`
+        # instead of `r.recognize_google(audio)`
+
+        recog_text = r.recognize_google(audio)
+        print("YOU:", end=" ")
+        print("\033[92m" + recog_text + "\033[0m \n")
+        return recog_text
+    
+    
+    except sr.UnknownValueError:
+        print("Google Speech Recognition could not understand audio")
+        return ""
+    except sr.RequestError as e:
+        print("Could not request results from Google Speech Recognition service; {0}".format(e))
+        return ""
+
+def say(SPEECH: str):
+    print("\033[94m" + SPEECH + "\033[0m")
+    if len(SPEECH) != 0:
+        asyncio.run(speak(SPEECH))
 
 async def speak(TXT : str):
     communicate = edge_tts.Communicate(TXT, SPEECH_VOICE)
@@ -109,3 +149,22 @@ async def speak(TXT : str):
         await process.wait()
     except TypeError:
         pass
+
+def string_to_twist_essentials(MSG: str) -> tuple:
+    # [LIN 1.0 ANG 0.0 3]
+    MSG = MSG.strip()
+
+    print(f"`{MSG}`")
+    if not (MSG[0] == "[" and MSG[-1] == "]"):
+        raise ValueError("Invalid message format. Must be enclosed in square brackets.")
+    
+    MSG = MSG.replace("[", "").replace("]", "").split(" ")
+
+
+    x = float(MSG[1])
+    z = float(MSG[3])
+    time = float(MSG[4])
+
+    print("TWIST DETES \nx:", x, "z:", z, "time:", time)
+
+    return x, z, time

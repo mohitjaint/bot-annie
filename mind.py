@@ -1,25 +1,45 @@
 import ollama
 from twist_micro_server import twist_api
-from functions import twist, speak
+from functions import listen, say, speak, ard_twist, twist, string_to_twist_essentials
 import rclpy
 import asyncio
+import serial
+
+CHK_VOICE = False
+SIM = False
 
 
-BREAK = False
-
+ARDUINO = None
 
 # Initial Checks___________
 # Speech
-asyncio.run(speak("Voice check... 1,2,3, bananas will destroy the world!"))
-print("Said!")
+if CHK_VOICE:
+    print("Checking voice...")
+    asyncio.run(speak("Voice check... 1,2,3, bananas will destroy the world!"))
+    print("Said!")
+
+if not SIM and ARDUINO is None:
+    print("Trying to connect to Arduino @ /dev/ttyACM0...")
+    try:
+        ARDUINO = serial.Serial("/dev/ttyACM0", 9600)
+        print("Connected!")
+    except:
+        say("Cannot connect to Arduino.")
 
 # Movement
 
-
-# quit()
 while True:
 
-    USER_PROMPT = input(">> ")
+    # USER_PROMPT = input(">> ")
+    try:
+        USER_PROMPT = listen()
+    except KeyboardInterrupt:
+        input("Stopped Listening! Press enter to resume")
+        continue
+
+    if USER_PROMPT.strip() == '':
+        continue
+
     if USER_PROMPT == '/bye':
         break
 
@@ -39,16 +59,24 @@ while True:
         if '[' in chunk:
             # Incoming action! Speak whats to speak and act
             record_action = True
-            # print(SPEECH)
-            speak(SPEECH)
+
+            say(SPEECH)
+            # asyncio.run(speak(SPEECH))
 
             SPEECH = ""
 
         elif ']' in chunk:
             record_action = False
-            # Send Twist here
             ACTION += chunk
-            print("ACT:", ACTION)
+            
+            # Send Twist here
+            d = string_to_twist_essentials(ACTION)
+            
+            if SIM:
+                twist(d[0], d[1], d[2])
+            else:
+                ard_twist(d[0], d[1], d[2], ARDUINO)
+
             ACTION = ""
             continue
 
@@ -57,12 +85,8 @@ while True:
         else:
             ACTION += chunk
 
-
-    # print(SPEECH)
-    if len(SPEECH) != 0:
-        asyncio.run(speak(SPEECH))
-
-
+    say(SPEECH)
+    
     print()
 
 print("Shutting down...")
