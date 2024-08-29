@@ -1,14 +1,15 @@
+from datetime import datetime
 import asyncio
 import subprocess
 from time import sleep
 from geometry_msgs.msg import Twist
-from twist_micro_server import twist_api
+# from twist_micro_server import twist_api
 import edge_tts
 import speech_recognition as sr
 import serial
 
 # PARAMS
-MESSAGE = Twist()
+# MESSAGE = Twist()
 SPEECH_VOICE = "en-GB-SoniaNeural"
 
 
@@ -71,13 +72,17 @@ def rotate(clockwise: bool, speed: float, time: float):
 
 ############################################################
 
-def ard_twist(x: float, z: float, time: float, arduino, remote=False):
+def ard_twist(x: float, z: float, time: float, arduino=None, remote=False):
 
     if remote:
-        pass
-    else:
+        with open('command.txt', 'w') as f:
+            f.write(f"{datetime.now().timestamp()}[{x},{z},{time}]")
+    elif arduino is not None:
         arduino.write(f"[{x},{z},{time}]".encode())
+    else:
+        raise "No arduino or remote connection specified."
 
+# ard_twist(1.0, 0.0, 3.0, None, True)
 
 def twist(x: float, z: float, time: float):
     '''Moves the bot in the specified linear x and angular z direction for the specified time. The bot will move infinitely if time is negative.'''
@@ -99,7 +104,6 @@ def twist(x: float, z: float, time: float):
     sleep(time)
 
     idle()
-
 
 def listen(show=True) -> str:
     # obtain audio from the microphone
@@ -153,6 +157,9 @@ async def speak(TXT : str):
 def string_to_twist_essentials(MSG: str) -> tuple:
     # [LIN 1.0 ANG 0.0 3]
     MSG = MSG.strip()
+
+    if MSG[-1] == ".":
+        MSG = MSG[:-1]
 
     print(f"`{MSG}`")
     if not (MSG[0] == "[" and MSG[-1] == "]"):

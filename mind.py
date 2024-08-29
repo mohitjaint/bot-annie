@@ -75,7 +75,7 @@ while True:
             if SIM:
                 twist(d[0], d[1], d[2])
             else:
-                ard_twist(d[0], d[1], d[2], ARDUINO)
+                ard_twist(d[0], d[1], d[2], ARDUINO, True)
 
             ACTION = ""
             continue
