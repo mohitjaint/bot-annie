@@ -3,7 +3,7 @@ import requests
 import serial
 import sys
 
-HOST_IP = "127.0.0.1"
+HOST_IP = "192.168.36.245"
 
 if len(sys.argv) > 1:
     if sys.argv[1] == "--remote" or sys.argv[1] == "-r":
