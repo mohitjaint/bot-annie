@@ -5,17 +5,17 @@ import rclpy
 import asyncio
 import serial
 
-CHK_VOICE = False
+CHK_VOICE = True
 SIM = False
 
-
+STARTING_SPEECH = "Voice Check... Cheem tapaak dum dum..."
 ARDUINO = None
 
 # Initial Checks___________
 # Speech
 if CHK_VOICE:
     print("Checking voice...")
-    asyncio.run(speak("Voice check... 1,2,3, bananas will destroy the world!"))
+    asyncio.run(speak(STARTING_SPEECH))
     print("Said!")
 
 if not SIM and ARDUINO is None:
@@ -24,7 +24,8 @@ if not SIM and ARDUINO is None:
         ARDUINO = serial.Serial("/dev/ttyACM0", 9600)
         print("Connected!")
     except:
-        say("Cannot connect to Arduino.")
+        pass
+        # say("Cannot connect to Arduino.")
 
 # Movement
 
@@ -44,7 +45,7 @@ while True:
         break
 
     stream = ollama.chat(
-        model='bot_bheem',
+        model='bot_baldev',
         messages=[{'role': 'user', 'content': USER_PROMPT}],
         stream=True,
     )

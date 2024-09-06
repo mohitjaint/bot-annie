@@ -10,7 +10,8 @@ import serial
 
 # PARAMS
 # MESSAGE = Twist()
-SPEECH_VOICE = "en-GB-SoniaNeural"
+SPEECH_VOICE = "en-IN-NeerjaNeural"
+# SPEECH_VOICE = "en-GB-SoniaNeural"
 
 
 # List of actions...
@@ -110,7 +111,7 @@ def listen(show=True) -> str:
     r = sr.Recognizer()
     with sr.Microphone() as source:
         print(f"\rListening...", end="", flush=True)
-        audio = r.listen(source)
+        audio = r.listen(source, timeout=2, phrase_time_limit=3)
 
     print("\rRecognizing...", end="", flush=True)
     try:
@@ -119,6 +120,7 @@ def listen(show=True) -> str:
         # instead of `r.recognize_google(audio)`
 
         recog_text = r.recognize_google(audio)
+        # recog_text = r.recognize_sphinx(audio)
         print("YOU:", end=" ")
         print("\033[92m" + recog_text + "\033[0m \n")
         return recog_text
@@ -137,7 +139,7 @@ def say(SPEECH: str):
         asyncio.run(speak(SPEECH))
 
 async def speak(TXT : str):
-    communicate = edge_tts.Communicate(TXT, SPEECH_VOICE)
+    communicate = edge_tts.Communicate(TXT, SPEECH_VOICE, pitch="+20Hz", rate="+20%")
     
     
     print("\033[92m" + TXT + "\033[0m \n")
