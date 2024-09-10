@@ -5,7 +5,7 @@ import rclpy
 import asyncio
 import serial
 
-CHK_VOICE = True
+CHK_VOICE = False
 SIM = False
 
 STARTING_SPEECH = "Voice Check... Cheem tapaak dum dum..."
@@ -36,6 +36,9 @@ while True:
         USER_PROMPT = listen()
     except KeyboardInterrupt:
         input("Stopped Listening! Press enter to resume")
+        continue
+    except:
+        print("Error in listening")
         continue
 
     if USER_PROMPT.strip() == '':

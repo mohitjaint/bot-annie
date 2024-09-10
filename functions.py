@@ -144,17 +144,19 @@ async def speak(TXT : str):
     
     print("\033[92m" + TXT + "\033[0m \n")
     
-
-    process = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-"], stdin=subprocess.PIPE)
-
-    async for chunk in communicate.stream():
-        if chunk["type"] == "audio":
-            process.stdin.write(chunk["data"])
-    process.stdin.close()
     try:
-        await process.wait()
-    except TypeError:
-        pass
+        process = subprocess.Popen(["ffplay", "-nodisp", "-autoexit", "-"], stdin=subprocess.PIPE)
+
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                process.stdin.write(chunk["data"])
+        process.stdin.close()
+        try:
+            await process.wait()
+        except TypeError:
+            pass
+    except Exception as e:
+        print("There was an error...", e)
 
 def string_to_twist_essentials(MSG: str) -> tuple:
     # [LIN 1.0 ANG 0.0 3]
