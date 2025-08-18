@@ -1,198 +1,187 @@
-#define MotorLeftDir 4
-#define MotorRightDir 2
-#define MotorLeftSpeed A1
-#define MotorRightSpeed A2
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
 
+// motor driver pin definitions
+#define ENA   14  // speed control motor Right  (GPIO14, D5)
+#define ENB   12  // speed control motor Left   (GPIO12, D6)
+#define IN_1  15  // L298N IN1 Right motor     (GPIO15, D8)
+#define IN_2  13  // L298N IN2 Right motor     (GPIO13, D7)
+#define IN_3  2   // L298N IN3 Left motor      (GPIO2,  D4)
+#define IN_4  0   // L298N IN4 Left motor      (GPIO0,  D3)
 
-int incomingByte = 0;  // for incoming serial data
-char c;
+const char* AP_SSID = "annie";
+const char* AP_PASS = "12345678";
 
-// char buff[30] = "";
-String buff = "";
-float lin;
-int lin_i;
-float ang;
-int ang_i;
-float seconds;
-int leftSpeed, leftVal;
-int rightSpeed, rightVal;
+ESP8266WebServer server(80);
 
-bool incomingCommand = false;
-int recvd = 0;
+// motion parameters
+float lin = 0.0, ang = 0.0, secondsMoving = 0.0;
+long  lin_i = 0, ang_i = 0;
+int   leftSpeed = 0, rightSpeed = 0;
+int   leftVal = 0, rightVal = 0;
 
 void setup() {
-  Serial.begin(9600);  // opens serial port, sets data rate to 9600 bps
-  Serial.println("Started listenin'...");
+  // Root page with control buttons
+server.on("/", HTTP_GET, []() {
+  String html = R"rawliteral(
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>ESP8266 Robot Control</title>
+      <style>
+        body { font-family: Arial; text-align: center; margin-top: 40px; }
+        button { width: 100px; height: 60px; margin: 10px; font-size: 18px; }
+      </style>
+      <script>
+        function sendCommand(lin, ang, dur) {
+          fetch("/twist", {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: "[" + lin + "," + ang + "," + dur + "]"
+          });
+        }
+      </script>
+    </head>
+    <body>
+      <h2>ESP8266 Motor Control</h2>
+      <div>
+        <button onclick="sendCommand(1.0,0.0,1.5)">Forward</button><br>
+        <button onclick="sendCommand(0.0,-1.0,1)">Left</button>
+        <button onclick="sendCommand(0.0,1.0,1)">Right</button><br>
+        <button onclick="sendCommand(-1.0,0.0,1.5)">Backward</button><br>
+        <button onclick="sendCommand(0.0,0.0,0.1)">Stop</button>
+      </div>
+    </body>
+    </html>
+  )rawliteral";
+  server.send(200, "text/html", html);
+});
 
-  pinMode(MotorLeftDir, OUTPUT);
-  pinMode(MotorRightDir, OUTPUT);
-  pinMode(MotorLeftSpeed, OUTPUT);
-  pinMode(MotorRightSpeed, OUTPUT);
+  Serial.begin(9600);
+  Serial.println();
+  Serial.println("ESP8266 Differential Drive starting...");
 
+  // motor pins
+  pinMode(ENA,   OUTPUT);
+  pinMode(ENB,   OUTPUT);
+  pinMode(IN_1,  OUTPUT);
+  pinMode(IN_2,  OUTPUT);
+  pinMode(IN_3,  OUTPUT);
+  pinMode(IN_4,  OUTPUT);
 
-  Serial.println("Giving a 255 kick for 100ms");
+  // PWM config
+  analogWriteRange(1023);
+  analogWriteFreq(1000);
 
-  analogWrite(MotorLeftSpeed, 255);
-  analogWrite(MotorRightSpeed, 255);
-  delay(100);
-  analogWrite(MotorLeftSpeed, 0);
-  analogWrite(MotorRightSpeed, 0);
+  // start AP
+  WiFi.softAP(AP_SSID, AP_PASS);
+  IPAddress IP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(IP);
+  Serial.println(WiFi.localIP());
+  // HTTP POST /twist handler
+  server.on("/twist", HTTP_POST, []() {
+    String body = server.arg("plain");
+    Serial.print("Received: ");
+    Serial.println(body);
+    if (processCommandString(body)) {
+      server.send(200, "text/plain", "OK");
+    } else {
+      server.send(400, "text/plain", "BadCommand");
+    }
+  });
 
-  Serial.println("Starting loop...");
-
+  server.begin();
+  Serial.println("HTTP server started");
 }
-
-void move() {
-  /*
-  CONVENTION:
-  The values of 'lin' and 'ang' should be between -2.0 and 2.0. Time maximum allowed should be 30 seconds.
-  */
-
-  // Process data
-  lin = max(-2.0, min(2.0, lin));
-  ang = max(-2.0, min(2.0, ang));
-
-  // Integer values should range from -2000 to 2000;
-  lin_i = lin * 1000;
-  ang_i = ang * 1000;
-
-  // Serial.println("HERE:");
-  // Serial.println(lin_i);
-  // Serial.println(ang_i);
-  // Serial.println(seconds);
-
-
-  // BIG BRAIN 🧠
-  leftSpeed = lin_i - ang_i;
-  rightSpeed = lin_i + ang_i;
-  // BIG BRAIN END 🐮
-
-
-  Serial.println("Calculated Speed Numbers:");
-  Serial.println(leftSpeed);
-  Serial.println(rightSpeed);
-
-  leftVal = abs(map(abs(leftSpeed), 0, 4000, 0, 1023));
-  rightVal = abs(map(abs(rightSpeed), 0, 4000, 0, 1023));
-
-  Serial.println("Final Values:");
-  Serial.println(leftVal);
-  Serial.println(rightVal);
-
-  if (leftSpeed > rightSpeed) {
-    // Clockwise
-    Serial.println("CLOCKWISE");
-    digitalWrite(MotorLeftDir, HIGH);
-    digitalWrite(MotorRightDir, LOW);
-
-
-    if (leftVal < 130){
-      leftVal = 130;
-    }
-  } else if (leftSpeed < rightSpeed) {
-    // Anti Clockwise
-    Serial.println("ANTI-CLOCKWISE");
-    digitalWrite(MotorLeftDir, LOW);
-    digitalWrite(MotorRightDir, HIGH);
-
-
-    if (rightVal < 130){
-      rightVal = 130;
-    }
-
-  } else if (leftSpeed < 0) {  // LINEAR only!
-    // Backward
-    digitalWrite(MotorLeftDir, LOW);
-    digitalWrite(MotorRightDir, LOW);
-
-
-    if (leftVal < 130){
-      leftVal = 130;
-    }
-    if (rightVal < 130){
-      rightVal = 130;
-    }
-
-  } else {
-    // Forward
-    digitalWrite(MotorLeftDir, HIGH);
-    digitalWrite(MotorRightDir, HIGH);
-  
-
-    if (leftVal < 130){
-      leftVal = 130;
-    }
-    if (rightVal < 130){
-      rightVal = 130;
-    }
-  }
-
-  // Motor wont run before 130 PWM value;
-  analogWrite(MotorLeftSpeed, leftVal);
-  analogWrite(MotorRightSpeed, rightVal);
-  delay(seconds * 1000);
-
-
-
-  analogWrite(MotorLeftSpeed, 0);
-  analogWrite(MotorRightSpeed, 0);
-  Serial.print("MOVED @ ");
-  Serial.print(leftVal);
-  Serial.println(leftVal);
-}
-
 
 void loop() {
-  if (Serial.available() > 0) {
-    // read the incoming byte:
-    incomingByte = Serial.read();  // THIS IS ASCII VALUE of incoming string...
-    c = incomingByte;
+  server.handleClient();
+}
 
-    if (c == '\n') {
-      return;
-    }
+// parse “[lin,ang,dur]”
+bool processCommandString(String s) {
+  s.trim();
+  if (!s.startsWith("[") || !s.endsWith("]")) return false;
+  s = s.substring(1, s.length()-1);
+  s.trim();
 
-    // Serial.println(incomingByte, DEC);
-    // Serial.println(c);
+  int c1 = s.indexOf(',');
+  int c2 = s.indexOf(',', c1+1);
+  if (c1 < 0 || c2 < 0) return false;
 
+  lin = s.substring(0, c1).toFloat();
+  ang = s.substring(c1+1, c2).toFloat();
+  secondsMoving = s.substring(c2+1).toFloat();
 
-    if (incomingCommand) {
-      if (c == ',') {
-        // Trace and clear buff
+  Serial.printf("Parsed lin=%.2f, ang=%.2f, dur=%.2f\n", lin, ang, secondsMoving);
+  doMove();
+  return true;
+}
 
-        if (recvd == 0) {
-          // Store in lin
-          lin = buff.toFloat();
-          recvd++;
-        } else if (recvd == 1) {
-          // Store in ang
-          ang = buff.toFloat();
-          recvd++;
-        }
+void doMove() {
+  // clamp inputs
+  lin = constrain(lin, -2.0, 2.0);
+  ang = constrain(ang, -2.0, 2.0);
 
-        buff = "";
+  // scale
+  lin_i = (long)(lin * 1000.0);
+  ang_i = (long)(ang * 1000.0);
 
-      } else if (c == ']') {
-        incomingCommand = false;
-        // Final frisk
+  // differential drive math
+  leftSpeed  = lin_i - ang_i;
+  rightSpeed = lin_i + ang_i;
 
-        // Store in seconds
-        seconds = buff.toFloat();
-        recvd = 0;
+  // map to PWM (0–1023)
+  leftVal  = map(abs(leftSpeed),  0, 4000, 0, 1023);
+  rightVal = map(abs(rightSpeed), 0, 4000, 0, 1023);
+  leftVal  = max(leftVal,  500);  // motor dead-zone
+  rightVal = max(rightVal, 500);
 
-        buff = "";
-        // ACT
-        move();
-
-      } else {
-        // Numbers and dots
-        buff += c;
-      }
-    }
-
-
-    if (c == '[') {
-      incomingCommand = true;
-    }
+  // set motor directions
+  // RIGHT motor uses IN_1/IN_2
+  if (leftSpeed > rightSpeed) {
+    digitalWrite(IN_1, HIGH);
+    digitalWrite(IN_2, LOW);
+  } else if (leftSpeed < rightSpeed) {
+    digitalWrite(IN_1, LOW);
+    digitalWrite(IN_2, HIGH);
+  } else if (leftSpeed < 0) {
+    digitalWrite(IN_1, HIGH);
+    digitalWrite(IN_2, LOW);
+  } else {
+    digitalWrite(IN_1, LOW);
+    digitalWrite(IN_2, HIGH);
   }
+
+  // LEFT motor uses IN_3/IN_4
+  if (rightSpeed > leftSpeed) {
+    digitalWrite(IN_3, HIGH);
+    digitalWrite(IN_4, LOW);
+  } else if (rightSpeed < leftSpeed) {
+    digitalWrite(IN_3, LOW);
+    digitalWrite(IN_4, HIGH);
+  } else if (rightSpeed < 0) {
+    digitalWrite(IN_3, HIGH);
+    digitalWrite(IN_4, LOW);
+  } else {
+    digitalWrite(IN_3, LOW);
+    digitalWrite(IN_4, HIGH);
+  }
+
+  // apply PWM
+  analogWrite(ENA, leftVal);
+  analogWrite(ENB, rightVal);
+  Serial.printf("Drive L:%d R:%d for %.0f ms\n", leftVal, rightVal, secondsMoving * 1000);
+
+  // blocking delay
+  unsigned long start = millis();
+  while (millis() - start < (unsigned long)(secondsMoving * 1000.0)) {
+    delay(10);
+  }
+
+  // stop
+  analogWrite(ENA, 0);
+  analogWrite(ENB, 0);
+  Serial.println("Move complete");
 }
