@@ -22,7 +22,7 @@ import re
 # from TTS.api import TTS
 # PARAMS
 MESSAGE = Twist()
-#SPEECH_VOICE = "en-IN-NeerjaNeural"
+SPEECH_VOICE = "en-IN-NeerjaNeural"
 PIPER_MODEL = os.path.expanduser("piper-voices/en_US-hfc_female-medium.onnx")
 ##VOSK_MODEL_PATH = os.path.join(os.path.dirname(__file__), "test_area/models/vosk-model-small-en-us-0.15")
 ##vosk_model = Model(VOSK_MODEL_PATH)
@@ -124,27 +124,11 @@ def twist(x: float, z: float, time: float):
     sleep(time)
 
     idle()
-
-import numpy as np
-import sounddevice as sd
-import tempfile
-import scipy.io.wavfile as wav
-import re
-
-def play_beep(frequency=1000, duration=0.2, samplerate=16000):
-    """Play a beep sound"""
-    t = np.linspace(0, duration, int(samplerate * duration), endpoint=False)
-    wave = 0.5 * np.sin(2 * np.pi * frequency * t)
-    sd.play(wave, samplerate)
-    sd.wait()
-
+    
 def listen(show=True) -> str:
-    """Offline speech recognition using faster-whisper (tiny.en) with a beep before recording"""
+    """Offline speech recognition using faster-whisper (tiny.en)"""
     duration = 5  # seconds to record
     samplerate = 16000
-
-    # Play beep before listening
-    play_beep(frequency=880, duration=0.25)   # tudung-style beep
 
     print("\rListening...", end="", flush=True)
 
@@ -161,7 +145,6 @@ def listen(show=True) -> str:
     segments, _ = model.transcribe(tmp_path)
     text = " ".join([seg.text for seg in segments]).strip()
     
-    # Cleanup text (only safe characters)
     text = re.sub(r"[^a-zA-Z0-9 ,.\[\]\-_]", "", text)
 
     if show and text:
@@ -169,35 +152,6 @@ def listen(show=True) -> str:
         print("\033[92m" + text + "\033[0m \n")
 
     return text
-
-    
-# def listen(show=True) -> str:
-#     """Offline speech recognition using faster-whisper (tiny.en)"""
-#     duration = 5  # seconds to record
-#     samplerate = 16000
-
-#     print("\rListening...", end="", flush=True)
-
-#     # Record audio
-#     audio = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=1, dtype='int16')
-#     sd.wait()
-
-#     # Save to temporary WAV file
-#     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmpfile:
-#         wav.write(tmpfile.name, samplerate, audio)
-#         tmp_path = tmpfile.name
-
-#     # Transcribe
-#     segments, _ = model.transcribe(tmp_path)
-#     text = " ".join([seg.text for seg in segments]).strip()
-    
-#     text = re.sub(r"[^a-zA-Z0-9 ,.\[\]\-_]", "", text)
-
-#     if show and text:
-#         print("\rYOU:", end=" ")
-#         print("\033[92m" + text + "\033[0m \n")
-
-#     return text
 
     
 # def _callback(indata, frames, time, status):
@@ -304,16 +258,8 @@ def say(SPEECH: str):
         speak(SPEECH)
 
 def speak(TXT: str):
-    """Use Piper TTS for speech output - only speaks alphabets, numbers, and basic punctuation"""
-    # Filter text to only include allowed characters
-    allowed_chars = re.compile(r'[^a-zA-Z0-9 .,!?\'\"]')
-    filtered_text = allowed_chars.sub('', TXT)
-    
-    print("\033[92m" + filtered_text + "\033[0m \n")
-
-    if not filtered_text.strip():
-        print("No speakable content after filtering")
-        return
+    """Use Piper TTS for speech output"""
+    print("\033[92m" + TXT + "\033[0m \n")
 
     try:
         # Generate audio with Piper
@@ -322,8 +268,8 @@ def speak(TXT: str):
             stdin=subprocess.PIPE, stdout=subprocess.PIPE
         )
 
-        # Send filtered text to Piper
-        process.stdin.write(filtered_text.encode("utf-8"))
+        # Send text to Piper
+        process.stdin.write(TXT.encode("utf-8"))
         process.stdin.close()
 
         # Read raw audio (16-bit PCM, 22050Hz mono by default)
@@ -339,6 +285,7 @@ def speak(TXT: str):
 
     except Exception as e:
         print("Piper TTS error:", e)
+
 
 # def say(SPEECH: str):
 #     print("\033[94m" + SPEECH + "\033[0m")
@@ -388,53 +335,23 @@ def speak(TXT: str):
 #     return x, z, time
 def string_to_twist_essentials(MSG: str) -> tuple:
     MSG = MSG.strip()
-    
-    # Remove brackets and any surrounding text
-    start_idx = MSG.find('[')
-    end_idx = MSG.find(']')
-    
-    if start_idx == -1 or end_idx == -1:
-        raise ValueError(f"Invalid Twist command (missing brackets): {MSG}")
-    
-    # Extract just the content between brackets
-    content = MSG[start_idx + 1:end_idx]
-    
-    # Try comma-separated format first: [x,y,z]
-    if ',' in content:
-        parts = [part.strip() for part in content.split(',')]
-        if len(parts) == 3:
-            try:
-                x = float(parts[0])
-                z = float(parts[1])
-                time = float(parts[2])
-                print("TWIST DETECTS (comma format) \nx:", x, "z:", z, "time:", time)
-                return x, z, time
-            except ValueError:
-                pass  # Fall through to try the other format
-    
-    # Try space-separated format: [LIN x ANG z time]
-    parts = content.split()
-    if len(parts) >= 5 and parts[0] == "LIN" and parts[2] == "ANG":
-        try:
-            x = float(parts[1])
-            z = float(parts[3])
-            time = float(parts[4])
-            print("TWIST DETECTS (LIN/ANG format) \nx:", x, "z:", z, "time:", time)
-            return x, z, time
-        except (ValueError, IndexError):
-            pass
-    
-    # If neither format works, try to extract any three numbers in sequence
-    import re
-    numbers = re.findall(r"[-+]?\d*\.\d+|\d+", content)
-    if len(numbers) >= 3:
-        try:
-            x = float(numbers[0])
-            z = float(numbers[1])
-            time = float(numbers[2])
-            print("TWIST DETECTS (number extraction) \nx:", x, "z:", z, "time:", time)
-            return x, z, time
-        except ValueError:
-            pass
-    
-    raise ValueError(f"Could not parse Twist values from: {content}")
+
+    # Only process valid Twist commands
+    if not MSG.startswith("[LIN ") or "ANG" not in MSG:
+        raise ValueError(f"Invalid Twist command: {MSG}")
+
+    # Remove brackets and split
+    MSG = MSG.replace("[", "").replace("]", "").split(" ")
+
+    # Remove any trailing commas from each element
+    MSG = [s.rstrip(",") for s in MSG]
+
+    try:
+        x = float(MSG[1])
+        z = float(MSG[3])
+        time = float(MSG[4])
+    except Exception as e:
+        raise ValueError(f"Could not parse Twist values from {MSG}") from e
+
+    print("TWIST DETECTS \nx:", x, "z:", z, "time:", time)
+    return x, z, time
