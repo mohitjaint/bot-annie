@@ -1,3 +1,9 @@
 *.pyc
 venv/
 piper-voices/
+# Models and binaries
+*.onnx
+*.deb
+*.bin
+*.pth
+*.pt
