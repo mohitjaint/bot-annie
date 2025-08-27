@@ -1,9 +1,41 @@
+# Python cache
+__pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
 venv/
-piper-voices/
+.env/
+.venv/
+
 # Models and binaries
+piper-voices/
 *.onnx
 *.deb
 *.bin
 *.pth
 *.pt
+*.h5
+*.ckpt
+
+# Audio/temp files
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.raw
+*.tmp
+
+# Logs
+*.log
+
+# IDE/project files
+.vscode/
+.idea/
+*.swp
+
+# Build/dist
+build/
+dist/
+*.egg-info/
