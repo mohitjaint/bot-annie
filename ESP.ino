@@ -9,8 +9,8 @@
 #define IN_3  2   // L298N IN3 Left motor      (GPIO2,  D4)
 #define IN_4  0   // L298N IN4 Left motor      (GPIO0,  D3)
 
-const char* AP_SSID = "annie";
-const char* AP_PASS = "12345678";
+const char* SSID = "Annie";
+const char* PASS = "12345678";
 
 ESP8266WebServer server(80);
 
@@ -59,7 +59,7 @@ server.on("/", HTTP_GET, []() {
 
   Serial.begin(9600);
   Serial.println();
-  Serial.println("ESP8266 Differential Drive starting...");
+  Serial.println("Annie, ESP8266 Differential Drive Bot starting...");
 
   // motor pins
   pinMode(ENA,   OUTPUT);
@@ -74,7 +74,7 @@ server.on("/", HTTP_GET, []() {
   analogWriteFreq(1000);
 
   // start AP
-  WiFi.softAP(AP_SSID, AP_PASS);
+  WiFi.softAP(SSID, PASS);
   IPAddress IP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
   Serial.println(IP);
@@ -135,8 +135,8 @@ void doMove() {
   // map to PWM (0–1023)
   leftVal  = map(abs(leftSpeed),  0, 4000, 0, 1023);
   rightVal = map(abs(rightSpeed), 0, 4000, 0, 1023);
-  leftVal  = max(leftVal,  500);  // motor dead-zone
-  rightVal = max(rightVal, 500);
+  leftVal  = max(leftVal,  800);  // motor dead-zone
+  rightVal = max(rightVal, 800);
 
   // set motor directions
   // RIGHT motor uses IN_1/IN_2

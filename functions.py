@@ -1,19 +1,14 @@
 from datetime import datetime
-import asyncio
 import subprocess
 from time import sleep
 from geometry_msgs.msg import Twist
 from twist_micro_server import twist_api
-import edge_tts
 import speech_recognition as sr
-import serial
 import sounddevice as sd
 import numpy as np
 import subprocess
 import os
 from vosk import Model, KaldiRecognizer
-import json
-import queue
 from faster_whisper import WhisperModel
 import tempfile
 import scipy.io.wavfile as wav
