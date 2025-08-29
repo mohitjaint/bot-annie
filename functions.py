@@ -8,11 +8,12 @@ import sounddevice as sd
 import numpy as np
 import subprocess
 import os
-from vosk import Model, KaldiRecognizer
 from faster_whisper import WhisperModel
 import tempfile
 import scipy.io.wavfile as wav
 import re
+import noisereduce as nr
+
 # import soundfile as sf
 # from TTS.api import TTS
 # PARAMS
@@ -22,7 +23,7 @@ PIPER_MODEL = os.path.expanduser("piper-voices/en_US-hfc_female-medium.onnx")
 ##VOSK_MODEL_PATH = os.path.join(os.path.dirname(__file__), "test_area/models/vosk-model-small-en-us-0.15")
 ##vosk_model = Model(VOSK_MODEL_PATH)
 ##audio_q = queue.Queue()
-model = WhisperModel("tiny.en", device="cpu")
+model = WhisperModel("small.en", device="cpu")
 #tts_model = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False)
 
 # SPEECH_VOICE = "en-GB-SoniaNeural"
@@ -120,11 +121,6 @@ def twist(x: float, z: float, time: float):
 
     idle()
 
-import numpy as np
-import sounddevice as sd
-import tempfile
-import scipy.io.wavfile as wav
-import re
 
 def play_beep(frequency=1000, duration=0.2, samplerate=16000):
     """Play a beep sound"""
@@ -133,30 +129,35 @@ def play_beep(frequency=1000, duration=0.2, samplerate=16000):
     sd.play(wave, samplerate)
     sd.wait()
 
+
+
 def listen(show=True) -> str:
-    """Offline speech recognition using faster-whisper (tiny.en) with a beep before recording"""
-    duration = 5  # seconds to record
+    duration = 5
     samplerate = 16000
 
-    # Play beep before listening
-    play_beep(frequency=880, duration=0.25)   # tudung-style beep
+    play_beep(frequency=880, duration=0.25)
 
     print("\rListening...", end="", flush=True)
 
-    # Record audio
+    # Record
     audio = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=1, dtype='int16')
     sd.wait()
 
-    # Save to temporary WAV file
+    # Convert to float32 for processing
+    audio_float = audio.astype(np.float32)
+
+    # Apply noise reduction
+    reduced = nr.reduce_noise(y=audio_float.flatten(), sr=samplerate)
+
+    # Save to temp wav
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmpfile:
-        wav.write(tmpfile.name, samplerate, audio)
+        wav.write(tmpfile.name, samplerate, reduced.astype(np.int16))  # convert back to int16
         tmp_path = tmpfile.name
 
     # Transcribe
     segments, _ = model.transcribe(tmp_path)
     text = " ".join([seg.text for seg in segments]).strip()
-    
-    # Cleanup text (only safe characters)
+
     text = re.sub(r"[^a-zA-Z0-9 ,.\[\]\-_]", "", text)
 
     if show and text:
